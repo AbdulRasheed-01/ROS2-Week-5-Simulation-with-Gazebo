@@ -505,5 +505,164 @@ Exercise 2: Creating Robot Models
         </ros2_control>
     
     </robot>
+2.2 Controller Configuration:
 
+Create config/robot_control.yaml:
+
+    controller_manager:
+      ros__parameters:
+        update_rate: 50
+        use_sim_time: true
     
+    # Controller definitions
+        joint_state_broadcaster:
+          type: joint_state_broadcaster/JointStateBroadcaster
+    
+        diff_drive_controller:
+          type: diff_drive_controller/DiffDriveController
+    
+        imu_sensor_broadcaster:
+          type: imu_sensor_broadcaster/IMUSensorBroadcaster
+
+    #Differential Drive Controller
+    diff_drive_controller:
+      ros__parameters:
+        left_wheel_names: ["left_wheel_joint"]
+        right_wheel_names: ["right_wheel_joint"]
+    
+        wheel_separation: 0.45
+        wheels_per_side: 1
+        wheel_radius: 0.1
+    
+        wheel_separation_multiplier: 1.0
+        left_wheel_radius_multiplier: 1.0
+        right_wheel_radius_multiplier: 1.0
+    
+        publish_rate: 50.0
+        odom_frame_id: odom
+        base_frame_id: base_link
+        pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+        twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    
+        open_loop: false
+        enable_odom_tf: true
+    
+        cmd_vel_timeout: 0.5
+        use_stamped_vel: true
+    
+        # Velocity limits
+        linear.x.max_velocity: 1.0
+        linear.x.min_velocity: -0.5
+        linear.x.max_acceleration: 1.0
+        linear.x.max_deceleration: 1.0
+    
+        angular.z.max_velocity: 2.0
+        angular.z.min_velocity: -2.0
+        angular.z.max_acceleration: 2.0
+        angular.z.max_deceleration: 2.0
+    
+2.3 Launch File for Robot Description:
+
+Create launch/display_robot.launch.py:
+
+    from launch import LaunchDescription
+    from launch.actions import DeclareLaunchArgument
+    from launch.substitutions import LaunchConfiguration
+    from launch_ros.actions import Node
+    from ament_index_python.packages import get_package_share_directory
+    import os
+
+    def generate_launch_description():
+        # Get package directory
+        pkg_dir = get_package_share_directory('gazebo_simulation')
+    
+    # URDF file path
+        urdf_file = os.path.join(pkg_dir, 'urdf', 'simple_robot.urdf.xacro')
+    
+        # Declare launch arguments
+        use_sim_time = DeclareLaunchArgument(
+            'use_sim_time',
+            default_value='false',
+            description='Use simulation time'
+        )
+    
+        gui = DeclareLaunchArgument(
+            'gui',
+            default_value='true',
+            description='Use joint state publisher gui'
+        )
+    
+        # Process URDF with xacro
+        from xacro import process_file
+        doc = process_file(urdf_file)
+        robot_description = doc.toprettyxml(indent='  ')
+    
+    # Robot state publisher
+        robot_state_publisher = Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[{
+                'robot_description': robot_description,
+                'use_sim_time': LaunchConfiguration('use_sim_time')
+            }]
+        )
+    
+        # Joint state publisher
+        joint_state_publisher = Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher',
+            condition=IfCondition(LaunchConfiguration('gui'))
+        )
+    
+        # Joint state publisher GUI
+        joint_state_publisher_gui = Node(
+            package='joint_state_publisher_gui',
+            executable='joint_state_publisher_gui',
+            name='joint_state_publisher_gui',
+            condition=IfCondition(LaunchConfiguration('gui'))
+        )
+    
+        # RViz2
+        rviz_config = os.path.join(pkg_dir, 'config', 'robot_display.rviz')
+        rviz_node = Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            arguments=['-d', rviz_config],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+        )
+    
+        return LaunchDescription([
+            use_sim_time,
+            gui,
+            robot_state_publisher,
+            joint_state_publisher,
+            joint_state_publisher_gui,
+            rviz_node
+        ])
+
+2.4 Test Robot Description:
+
+    #Display robot in RViz
+    ros2 launch gazebo_simulation display_robot.launch.py
+
+    #Check TF tree
+    ros2 run tf2_tools view_frames.py
+
+    #List joints
+    ros2 topic echo /joint_states
+
+    #Publish test joint commands
+    ros2 topic pub /simple_velocity_controller/commands geometry_msgs/msg/TwistStamped "
+    header:
+      frame_id: base_link
+    twist:
+      linear:
+        x: 0.5
+      angular:
+        z: 0.2"
+
+Exercise 3: Spawn Robot in Gazebo
