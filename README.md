@@ -666,3 +666,396 @@ Create launch/display_robot.launch.py:
         z: 0.2"
 
 Exercise 3: Spawn Robot in Gazebo
+
+3.1 Gazebo Launch File:
+
+Create launch/spawn_robot.launch.py:
+
+    from launch import LaunchDescription
+    from launch.actions import (
+        DeclareLaunchArgument,
+        IncludeLaunchDescription,
+        ExecuteProcess,
+        RegisterEventHandler
+    )
+    from launch.conditions import IfCondition
+    from launch.event_handlers import OnProcessExit
+    from launch.launch_description_sources import PythonLaunchDescriptionSource
+    from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+    from launch_ros.actions import Node
+    from launch_ros.substitutions import FindPackageShare
+    import os
+
+    def generate_launch_description():
+        # Package paths
+        pkg_gazebo_sim = FindPackageShare('gazebo_simulation')
+        pkg_gazebo_ros = FindPackageShare('gazebo_ros')
+    
+    # Launch configurations
+        use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+        headless = LaunchConfiguration('headless', default='false')
+        world = LaunchConfiguration('world', default='empty')
+    
+    # World file path
+        world_path = PathJoinSubstitution([
+            pkg_gazebo_sim, 'worlds', LaunchConfiguration('world')
+        ])
+    
+    # URDF file path
+        urdf_path = PathJoinSubstitution([
+            pkg_gazebo_sim, 'urdf', 'simple_robot.urdf.xacro'
+        ])
+    
+    # Launch arguments
+        declare_use_sim_time = DeclareLaunchArgument(
+            'use_sim_time', default_value='true',
+            description='Use simulation time'
+        )
+    
+        declare_headless = DeclareLaunchArgument(
+            'headless', default_value='false',
+            description='Run Gazebo headless'
+        )
+    
+        declare_world = DeclareLaunchArgument(
+            'world', default_value='empty.sdf',
+            description='World file name'
+        )
+    
+    # Start Gazebo
+        start_gazebo = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([
+                pkg_gazebo_ros, '/launch/ign_gazebo.launch.py'
+            ]),
+            launch_arguments={
+                'ign_args': ['-r -v 3 ', world_path],
+                'use_sim_time': use_sim_time,
+                'headless': headless
+            }.items()
+        )
+    
+    # Process URDF with xacro
+        from xacro import process_file
+        import tempfile
+    
+    # Get robot description
+        robot_description_content = process_file(
+            urdf_path.perform(None)
+        ).toprettyxml(indent='  ')
+    
+    # Robot state publisher
+        robot_state_publisher = Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[{
+                'robot_description': robot_description_content,
+                'use_sim_time': use_sim_time
+            }]
+        )
+    
+    # Spawn robot in Gazebo
+        spawn_robot = Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            name='spawn_robot',
+            arguments=[
+                '-entity', 'simple_robot',
+                '-topic', 'robot_description',
+                '-x', '0.0',
+                '-y', '0.0',
+                '-z', '0.1',
+                '-Y', '0.0'
+            ],
+            output='screen',
+            parameters=[{'use_sim_time': use_sim_time}]
+        )
+    
+        # Spawn robot after Gazebo is ready
+        spawn_robot_after_gazebo = RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=start_gazebo,
+                on_exit=[spawn_robot]
+            )
+        )
+    
+    # Load controllers
+        load_joint_state_broadcaster = ExecuteProcess(
+            cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+                 'joint_state_broadcaster'],
+            output='screen'
+        )
+    
+        load_diff_drive_controller = ExecuteProcess(
+            cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+                 'diff_drive_controller'],
+            output='screen'
+        )
+    
+    # Delay controller loading after spawn
+        load_controllers = RegisterEventHandler(
+            event_handler=OnProcessExit(
+                target_action=spawn_robot,
+                on_exit=[load_joint_state_broadcaster, load_diff_drive_controller]
+            )
+        )
+    
+        return LaunchDescription([
+            declare_use_sim_time,
+            declare_headless,
+            declare_world,
+            start_gazebo,
+            robot_state_publisher,
+            spawn_robot_after_gazebo,
+            load_controllers
+        ])
+
+3.2 Run Robot in Simulation:
+
+    #Build the workspace
+    cd ~/ros2_ws
+    colcon build --packages-select gazebo_simulation
+    source install/setup.bash
+
+    #Launch robot in empty world
+    ros2 launch gazebo_simulation spawn_robot.launch.py world:=empty.sdf
+
+    #In another terminal, control the robot
+    ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "
+    linear:
+      x: 0.5
+    angular:
+      z: 0.5"
+
+    #Check robot state
+    ros2 topic echo /odom
+    ros2 topic echo /joint_states
+
+    #List available controllers
+    ros2 control list_controllers
+    ros2 control list_hardware_interfaces
+
+Exercise 4: Adding Sensors
+4.1 Add LiDAR Sensor:
+
+Add to urdf/simple_robot.urdf.xacro:
+
+    <!-- LiDAR Sensor -->
+    <link name="lidar_link">
+        <visual>
+            <geometry>
+                <cylinder radius="0.05" length="0.05"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 0.1"/>
+            <material name="gray"/>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.05" length="0.05"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.1"/>
+            <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+        </inertial>
+    </link>
+
+    <joint name="lidar_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="lidar_link"/>
+        <origin xyz="0.2 0 0.15" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Gazebo LiDAR Plugin -->
+    <gazebo reference="lidar_link">
+        <sensor name="lidar" type="gpu_lidar">
+            <pose>0 0 0.1 0 0 0</pose>
+            <topic>scan</topic>
+            <update_rate>20</update_rate>
+            <lidar>
+                <scan>
+                    <horizontal>
+                        <samples>360</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-3.14159</min_angle>
+                        <max_angle>3.14159</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>16</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.2618</min_angle>
+                        <max_angle>0.2618</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>0.1</min>
+                    <max>10.0</max>
+                    <resolution>0.01</resolution>
+                </range>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.01</stddev>
+                </noise>
+            </lidar>
+            <plugin name="gazebo_ros_lidar" filename="libgazebo_ros_gpu_lidar.so">
+                <ros>
+                    <namespace>/robot</namespace>
+                    <argument>scan:=scan</argument>
+                </ros>
+                <output_type>sensor_msgs/LaserScan</output_type>
+                <frame_name>lidar_link</frame_name>
+            </plugin>
+        </sensor>
+    </gazebo>
+4.2 Add Camera Sensor:
+    
+    <!-- Camera Link -->
+    <link name="camera_link">
+        <visual>
+            <geometry>
+                <box size="0.03 0.05 0.05"/>
+            </geometry>
+            <origin rpy="0 0 0" xyz="0 0 0"/>
+            <material name="black"/>
+        </visual>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="camera_link"/>
+        <origin xyz="0.25 0 0.2" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Camera Sensor -->
+    <gazebo reference="camera_link">
+        <sensor name="camera" type="camera">
+            <pose>0 0 0 0 0 0</pose>
+            <topic>image_raw</topic>
+            <update_rate>30</update_rate>
+            <camera>
+                <horizontal_fov>1.0472</horizontal_fov>
+                <image>
+                    <width>640</width>
+                    <height>480</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.1</near>
+                    <far>100</far>
+                </clip>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.01</stddev>
+                </noise>
+            </camera>
+            <plugin name="gazebo_ros_camera" filename="libgazebo_ros_camera.so">
+                <ros>
+                    <namespace>/robot</namespace>
+                    <argument>image_raw:=image_raw</argument>
+                    <argument>camera_info:=camera_info</argument>
+                </ros>
+                <camera_name>camera</camera_name>
+                <frame_name>camera_link</frame_name>
+                <distortion_k1>0.0</distortion_k1>
+                <distortion_k2>0.0</distortion_k2>
+                <distortion_k3>0.0</distortion_k3>
+                <distortion_t1>0.0</distortion_t1>
+                <distortion_t2>0.0</distortion_t2>
+            </plugin>
+        </sensor>
+    </gazebo>
+4.3 Add IMU Sensor:
+
+    <!-- IMU Link -->
+    <link name="imu_link">
+        <visual>
+            <geometry>
+                <box size="0.02 0.02 0.02"/>
+            </geometry>
+            <material name="blue"/>
+        </visual>
+    </link>
+
+    <joint name="imu_joint" type="fixed">
+        <parent link="base_link"/>
+        <child link="imu_link"/>
+        <origin xyz="-0.1 0 0.1" rpy="0 0 0"/>
+    </joint>
+
+    <!-- IMU Sensor -->
+    <gazebo reference="imu_link">
+        <sensor name="imu" type="imu">
+            <pose>0 0 0 0 0 0</pose>
+            <topic>imu</topic>
+            <update_rate>100</update_rate>
+            <always_on>1</always_on>
+            <visualize>true</visualize>
+            <imu>
+                <angular_velocity>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                            <bias_mean>0.00001</bias_mean>
+                            <bias_stddev>0.00002</bias_stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                            <bias_mean>0.00001</bias_mean>
+                            <bias_stddev>0.00002</bias_stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.0002</stddev>
+                            <bias_mean>0.00001</bias_mean>
+                            <bias_stddev>0.00002</bias_stddev>
+                        </noise>
+                    </z>
+                </angular_velocity>
+                <linear_acceleration>
+                    <x>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.01</stddev>
+                            <bias_mean>0.001</bias_mean>
+                            <bias_stddev>0.001</bias_stddev>
+                        </noise>
+                    </x>
+                    <y>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.01</stddev>
+                            <bias_mean>0.001</bias_mean>
+                            <bias_stddev>0.001</bias_stddev>
+                        </noise>
+                    </y>
+                    <z>
+                        <noise type="gaussian">
+                            <mean>0.0</mean>
+                            <stddev>0.01</stddev>
+                            <bias_mean>0.001</bias_mean>
+                            <bias_stddev>0.001</bias_stddev>
+                        </noise>
+                    </z>
+                </linear_acceleration>
+            </imu>
+            <plugin name="gazebo_ros_imu" filename="libgazebo_ros_imu.so">
+                <ros>
+                    <namespace>/robot</namespace>
+                    <argument>imu:=imu</argument>
+                </ros>
+                <frame_name>imu_link</frame_name>
+                <initial_orientation_as_reference>false</initial_orientation_as_reference>
+            </plugin>
+        </sensor>
+    </gazebo>
+ 4.4 Sensor Visualization Node:
+
