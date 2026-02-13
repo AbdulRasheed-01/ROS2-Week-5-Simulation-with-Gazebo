@@ -58,3 +58,18 @@ Native ROS 2 integration
 Improved rendering
 
 Python API
+
+5.2 URDF vs SDF
+
+URDF (Unified Robot Description Format):
+
+XML format for robot descriptions
+
+ROS-specific
+
+Limited to robots only
+
+No world description
+
+Kinematics/Dynamics only
+
