@@ -308,3 +308,202 @@ Exercise 1: First Steps with Gazebo
 
     #Spawn model from SDF
     ign service -s /world/empty/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 3000 --req             'sdf_filename: "model.sdf"'
+Exercise 2: Creating Robot Models
+
+2.1 Simple Differential Drive Robot (URDF + Xacro):
+
+    Create urdf/simple_robot.urdf.xacro:
+
+    <?xml version="1.0"?>
+    <robot name="simple_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+    
+        <!-- Properties -->
+        <xacro:property name="base_width" value="0.4"/>
+        <xacro:property name="base_length" value="0.5"/>
+        <xacro:property name="base_height" value="0.2"/>
+        <xacro:property name="wheel_radius" value="0.1"/>
+        <xacro:property name="wheel_width" value="0.05"/>
+    
+        <!-- Colors -->
+        <material name="blue">
+            <color rgba="0.2 0.5 1.0 1.0"/>
+        </material>
+        <material name="black">
+            <color rgba="0.0 0.0 0.0 1.0"/>
+        </material>
+        <material name="gray">
+            <color rgba="0.5 0.5 0.5 1.0"/>
+        </material>
+    
+        <!-- Base Link -->
+        <link name="base_link">
+            <visual>
+                <geometry>
+                    <box size="${base_length} ${base_width} ${base_height}"/>
+                </geometry>
+                <material name="blue"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <box size="${base_length} ${base_width} ${base_height}"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="10.0"/>
+                <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+            </inertial>
+        </link>
+    
+        <!-- Left Wheel -->
+        <link name="left_wheel_link">
+            <visual>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+                <origin rpy="0 0 0" xyz="0 0 0"/>
+                <material name="black"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="1.0"/>
+                <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+            </inertial>
+        </link>
+    
+        <!-- Right Wheel -->
+        <link name="right_wheel_link">
+            <visual>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+                <origin rpy="0 0 0" xyz="0 0 0"/>
+                <material name="black"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="1.0"/>
+                <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+            </inertial>
+        </link>
+    
+        <!-- Caster Wheel -->
+        <link name="caster_wheel_link">
+            <visual>
+                <geometry>
+                    <sphere radius="0.05"/>
+                </geometry>
+                <material name="gray"/>
+            </visual>
+            <collision>
+                <geometry>
+                    <sphere radius="0.05"/>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass value="0.5"/>
+                <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+            </inertial>
+        </link>
+    
+        <!-- Base Joint -->
+        <joint name="base_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="base_link"/>
+            <origin xyz="0 0 0"/>
+        </joint>
+    
+        <!-- Left Wheel Joint -->
+        <joint name="left_wheel_joint" type="continuous">
+            <parent link="base_link"/>
+            <child link="left_wheel_link"/>
+            <origin xyz="${-base_length/3} ${-base_width/2 - wheel_width/2} 0" rpy="-1.5708 0 0"/>
+            <axis xyz="0 0 1"/>
+            <limit effort="10" velocity="10"/>
+        </joint>
+    
+        <!-- Right Wheel Joint -->
+        <joint name="right_wheel_joint" type="continuous">
+            <parent link="base_link"/>
+            <child link="right_wheel_link"/>
+            <origin xyz="${-base_length/3} ${base_width/2 + wheel_width/2} 0" rpy="-1.5708 0 0"/>
+            <axis xyz="0 0 1"/>
+            <limit effort="10" velocity="10"/>
+        </joint>
+    
+        <!-- Caster Wheel Joint -->
+        <joint name="caster_wheel_joint" type="fixed">
+            <parent link="base_link"/>
+            <child link="caster_wheel_link"/>
+            <origin xyz="${base_length/3} 0 -0.05"/>
+        </joint>
+    
+        <!-- Transmission for ros2_control -->
+        <transmission name="left_wheel_trans">
+            <type>transmission_interface/SimpleTransmission</type>
+            <joint name="left_wheel_joint">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="left_wheel_motor">
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+        </transmission>
+    
+        <transmission name="right_wheel_trans">
+            <type>transmission_interface/SimpleTransmission</type>
+            <joint name="right_wheel_joint">
+                <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+            </joint>
+            <actuator name="right_wheel_motor">
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+        </transmission>
+    
+        <!-- Gazebo Plugins -->
+        <gazebo>
+            <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+                <parameters>$(find gazebo_simulation)/config/robot_control.yaml</parameters>
+            </plugin>
+        
+            <plugin name="gazebo_ros_state" filename="libgazebo_ros_state.so">
+                <ros>
+                    <namespace>/robot</namespace>
+                    <argument>odom:=odom</argument>
+                </ros>
+                <update_rate>50</update_rate>
+            </plugin>
+        </gazebo>
+    
+        <!-- ros2_control Hardware Interface -->
+        <ros2_control name="GazeboSystem" type="system">
+            <hardware>
+                <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+            </hardware>
+            <joint name="left_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-1</param>
+                    <param name="max">1</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="right_wheel_joint">
+                <command_interface name="velocity">
+                    <param name="min">-1</param>
+                    <param name="max">1</param>
+                </command_interface>
+                <state_interface name="position"/>
+                <state_interface name="velocity"/>
+            </joint>
+        </ros2_control>
+    
+    </robot>
+
+    
