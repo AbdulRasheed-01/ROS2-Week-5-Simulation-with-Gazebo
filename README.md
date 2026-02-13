@@ -38,9 +38,13 @@ ROS 2 integration (ros_ign_bridge)
 Gazebo vs Other Simulators:
 
 Feature	      |  Gazebo Classic	 |   Gazebo Ignition	  |   Webots	 |  CoppeliaSim
+
 ROS 2 Support	|  Legacy	         |   Native	            |   Good	   |  Good
+
 Physics	      |  ODE/Bullet	     |   DART	              |   ODE	     |  Bullet
+
 Graphics	    |  OGRE	           |   OGRE 2	            |   Custom	 |  Custom
+
 Performance	  |  Good            |   Excellent	        |   Good	   |  Steep
 
 Gazebo Fortress (Current) Features:
