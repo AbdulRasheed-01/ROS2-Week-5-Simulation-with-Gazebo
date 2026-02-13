@@ -293,3 +293,18 @@ Exercise 1: First Steps with Gazebo
         main()
   1.3 Control Gazebo from CLI:
 
+    #List available worlds
+    ign gazebo -l
+
+    #Run headless (no GUI)
+    ign gazebo -s -r empty.sdf
+
+    #Play/Pause simulation
+    ign service -s /world/empty/control --reqtype ignition.msgs.WorldControl --reptype ignition.msgs.Boolean --timeout 3000 --req 'pause:     true'
+    ign service -s /world/empty/control --reqtype ignition.msgs.WorldControl --reptype ignition.msgs.Boolean --timeout 3000 --req 'pause:     false'
+
+    #Set simulation speed
+    ign service -s /world/empty/control --reqtype ignition.msgs.WorldControl --reptype ignition.msgs.Boolean --timeout 3000 --req             'multi_step: 2'
+
+    #Spawn model from SDF
+    ign service -s /world/empty/create --reqtype ignition.msgs.EntityFactory --reptype ignition.msgs.Boolean --timeout 3000 --req             'sdf_filename: "model.sdf"'
