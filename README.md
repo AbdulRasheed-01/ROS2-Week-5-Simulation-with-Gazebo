@@ -73,3 +73,22 @@ No world description
 
 Kinematics/Dynamics only
 
+SDF (Simulation Description Format):
+
+XML format for entire simulation
+
+Gazebo-native
+
+Robots, worlds, lights, physics
+
+Complete simulation description
+
+More expressive
+
+When to use which:
+
+URDF: Robot description for ROS 2 (MoveIt, Navigation)
+
+SDF: Full simulation description (Gazebo)
+
+Xacro: Macro language for URDF (parametric robots)
