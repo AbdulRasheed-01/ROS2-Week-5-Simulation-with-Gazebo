@@ -20,7 +20,9 @@ By the end of this week, you will be able to:
 ✅ Integrate Gazebo with MoveIt 2 and Navigation2
 
 📚 Theory Content
+
 5.1 What is Gazebo?
+
 Gazebo is a 3D robotics simulator with:
 
 Physics engine (ODE, Bullet, DART, Simbody)
@@ -32,4 +34,15 @@ Sensor simulation (cameras, LiDAR, IMU, GPS)
 Programmatic interface (plugins)
 
 ROS 2 integration (ros_ign_bridge)
+
+Gazebo vs Other Simulators:
+
+Feature	      |  Gazebo Classic	 |   Gazebo Ignition	  |   Webots	 |  CoppeliaSim
+ROS 2 Support	|  Legacy	         |   Native	            |   Good	   |  Good
+Physics	      |  ODE/Bullet	     |   DART	              |   ODE	     |  Bullet
+Graphics	    |  OGRE	           |   OGRE 2	            |   Custom	 |  Custom
+Performance	  |  Good            |   Excellent	        |   Good	   |  Steep
+
+Gazebo Fortress (Current) Features:
+
 
