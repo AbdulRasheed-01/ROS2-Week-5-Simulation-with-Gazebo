@@ -102,3 +102,26 @@ Joint Controllers: Position, velocity, effort control
 Hardware Interface: Abstract robot hardware
 
 Gazebo Plugin: Bridge between ROS 2 and Gazebo
+
+5.4 Sensor Simulation
+
+Supported Sensors in Gazebo:
+
+Sensor	                      Topic Type	                Use Case
+
+Camera	                      sensor_msgs/Image	          Vision, object detection
+
+Depth Camera	                sensor_msgs/Image	          3D perception
+
+LaserScan	                    sensor_msgs/LaserScan	      2D LiDAR
+
+PointCloud	                  sensor_msgs/PointCloud2	    3D LiDAR
+
+IMU	sensor_msgs/Imu	          Orientation,                acceleration
+
+GPS	                          sensor_msgs/NavSatFix	      Global position
+
+Force/Torque	                geometry_msgs/Wrench	      Contact sensing
+
+Sonar	                        sensor_msgs/Range	          Underwater/ultrasonic
+
