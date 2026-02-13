@@ -1058,4 +1058,162 @@ Add to urdf/simple_robot.urdf.xacro:
         </sensor>
     </gazebo>
  4.4 Sensor Visualization Node:
+Create gazebo_simulation/sensors/sensor_viewer.py:
 
+    #!/usr/bin/env python3
+    import rclpy
+    from rclpy.node import Node
+    from sensor_msgs.msg import LaserScan, Image, Imu
+    from nav_msgs.msg import Odometry
+    from visualization_msgs.msg import Marker, MarkerArray
+    from geometry_msgs.msg import Point
+    import cv2
+    from cv_bridge import CvBridge
+    import numpy as np
+    import math
+
+    class SensorViewer(Node):
+        def __init__(self):
+            super().__init__('sensor_viewer')
+        
+        # Subscribers
+            self.scan_sub = self.create_subscription(
+                LaserScan, '/robot/scan', self.scan_callback, 10)
+        
+            self.image_sub = self.create_subscription(
+                Image, '/robot/image_raw', self.image_callback, 10)
+        
+            self.imu_sub = self.create_subscription(
+                Imu, '/robot/imu', self.imu_callback, 10)
+        
+            self.odom_sub = self.create_subscription(
+                Odometry, '/robot/odom', self.odom_callback, 10)
+        
+        # Publishers
+            self.scan_marker_pub = self.create_publisher(
+                MarkerArray, '/robot/scan_markers', 10)
+        
+        # Bridge for image conversion
+            self.bridge = CvBridge()
+        
+        # Sensor data storage
+            self.latest_scan = None
+            self.latest_image = None
+            self.latest_imu = None
+            self.latest_odom = None
+        
+        # Timer for visualization
+            self.create_timer(0.1, self.publish_visualization)
+        
+            self.get_logger().info("Sensor Viewer started")
+    
+        def scan_callback(self, msg):
+            self.latest_scan = msg
+    
+        def image_callback(self, msg):
+            self.latest_image = msg
+        
+        # Display image in OpenCV window
+            try:
+                cv_image = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+                cv2.imshow('Robot Camera', cv_image)
+                cv2.waitKey(1)
+            except Exception as e:
+                self.get_logger().error(f'Image conversion error: {e}')
+    
+        def imu_callback(self, msg):
+            self.latest_imu = msg
+        
+        # Log IMU data
+            self.get_logger().info(
+                f'IMU - Orientation: {msg.orientation.w:.2f}, '
+                f'Angular Vel: {msg.angular_velocity.z:.2f}',
+                throttle_duration_sec=1.0
+            )
+    
+        def odom_callback(self, msg):
+            self.latest_odom = msg
+    
+        def publish_visualization(self):
+            if self.latest_scan:
+                self.publish_scan_markers()
+    
+        def publish_scan_markers(self):
+            marker_array = MarkerArray()
+        
+            scan = self.latest_scan
+            angle = scan.angle_min
+        
+            for i, range_val in enumerate(scan.ranges):
+                if range_val < scan.range_min or range_val > scan.range_max:
+                    angle += scan.angle_increment
+                    continue
+            
+                # Calculate point position
+                x = range_val * math.cos(angle)
+                y = range_val * math.sin(angle)
+            
+            # Create marker
+                marker = Marker()
+                marker.header.frame_id = 'lidar_link'
+                marker.header.stamp = self.get_clock().now().to_msg()
+                marker.ns = 'scan_points'
+                marker.id = i
+                marker.type = Marker.SPHERE
+                marker.action = Marker.ADD
+            
+                marker.pose.position.x = x
+                marker.pose.position.y = y
+                marker.pose.position.z = 0.0
+            
+                marker.scale.x = 0.05
+                marker.scale.y = 0.05
+                marker.scale.z = 0.05
+            
+            # Color based on distance
+                intensity = min(1.0, range_val / 5.0)
+                marker.color.r = intensity
+                marker.color.g = 1.0 - intensity
+                marker.color.b = 0.0
+                marker.color.a = 0.8
+            
+                marker.lifetime.sec = 1
+            
+                marker_array.markers.append(marker)
+                angle += scan.angle_increment
+        
+            self.scan_marker_pub.publish(marker_array)
+
+    def main(args=None):
+        rclpy.init(args=args)
+        node = SensorViewer()
+    
+        try:
+            rclpy.spin(node)
+        except KeyboardInterrupt:
+            pass
+    
+        cv2.destroyAllWindows()
+        node.destroy_node()
+        rclpy.shutdown()
+
+    if __name__ == '__main__':
+        main()
+4.5 Test Sensors:
+
+    #Launch robot with sensors
+    ros2 launch gazebo_simulation spawn_robot.launch.py world:=empty.sdf
+
+    #In another terminal, start sensor viewer
+    ros2 run gazebo_simulation sensor_viewer
+
+    #Check sensor topics
+    ros2 topic list | grep -E "/robot/(scan|image_raw|imu|odom)"
+
+    #View LiDAR data
+    ros2 topic echo /robot/scan --once
+
+    #View camera in RViz
+    rviz2 -d $(ros2 pkg prefix gazebo_simulation)/share/gazebo_simulation/config/sensor_display.rviz
+
+    
