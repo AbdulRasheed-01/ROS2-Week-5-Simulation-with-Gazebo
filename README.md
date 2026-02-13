@@ -49,4 +49,12 @@ Performance	  |  Good            |   Excellent	        |   Good	   |  Steep
 
 Gazebo Fortress (Current) Features:
 
+Distributed simulation
 
+Better performance
+
+Native ROS 2 integration
+
+Improved rendering
+
+Python API
