@@ -1743,3 +1743,5 @@ You've completed Week 5! You now know how to:
 ✅ Add and configure sensors (LiDAR, Camera, IMU)
 
 ✅ Implement ros2_control for robot actuation
+
+Next Week: Week 6 - Navigation Stack! You'll learn how to make robots autonomously navigate complex environments using Nav2.
