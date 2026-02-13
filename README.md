@@ -1503,4 +1503,142 @@ Create worlds/maze.sdf:
             </gui>
         </world>        
     </sdf>
+5.2 Office World with Furniture:
 
+Create worlds/office.sdf:
+
+    <?xml version="1.0" ?>
+    <sdf version="1.8">
+        <world name="office">
+            <physics>
+                <gravity>0 0 -9.8</gravity>
+                <max_step_size>0.001</max_step_size>
+                <real_time_factor>1</real_time_factor>
+            </physics>
+        
+            <scene>
+                <ambient>0.4 0.4 0.4 1</ambient>
+                <background>0.8 0.8 0.8 1</background>
+                <shadows>true</shadows>
+                <grid>true</grid>
+            </scene>
+        
+            <light name="ceiling_light" type="directional">
+                <pose>0 0 5 0 0 0</pose>
+                <diffuse>1 1 1 1</diffuse>
+                <specular>0.5 0.5 0.5 1</specular>
+                <direction>-0.2 -0.2 -1</direction>
+                <cast_shadows>true</cast_shadows>
+            </light>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Ground Plane</uri>
+                <pose>0 0 0 0 0 0</pose>
+            </include>
+        
+            <!-- Office Furniture -->
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Desk</uri>
+                <pose>2 1 0 0 0 1.57</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Chair</uri>
+                <pose>2 0.5 0 0 0 0</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Bookshelf</uri>
+                <pose>-2 -1 0 0 0 0</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Cabinet</uri>
+                <pose>0 -2 0 0 0 0</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Table</uri>
+                <pose>-2 2 0 0 0 1.57</pose>
+            </include>
+        
+            <!-- People -->
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Person Standing</uri>
+                <pose>3 -1 0 0 0 0</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Person Sitting</uri>
+                <pose>-1 3 0 0 0 0</pose>
+            </include>
+        
+            <!-- Plants -->
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Plant</uri>
+                <pose>4 2 0 0 0 0</pose>
+            </include>
+        
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Plant</uri>
+                <pose>-4 -2 0 0 0 0</pose>
+            </include>
+        
+            <!-- Trash bin -->
+            <include>
+                <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Trash Bin</uri>
+                <pose>3.5 -3 0 0 0 0</pose>
+            </include>
+        
+            <!-- Computer monitors on desks -->
+            <model name="monitor_1">
+                <pose>2 1.2 0.8 0 0 1.57</pose>
+                <static>true</static>
+                <link name="link">
+                    <visual name="screen">
+                        <geometry>
+                            <box>
+                                <size>0.5 0.05 0.4</size>
+                            </box>
+                        </geometry>
+                        <material>
+                            <ambient>0.1 0.1 0.1 1</ambient>
+                            <diffuse>0.2 0.2 0.2 1</diffuse>
+                            <emissive>0.1 0.1 0.1 1</emissive>
+                        </material>
+                    </visual>
+                    <visual name="stand">
+                        <pose>0 -0.15 -0.2 0 0 0</pose>
+                        <geometry>
+                            <cylinder>
+                                <radius>0.05</radius>
+                                <length>0.2</length>
+                            </cylinder>
+                        </geometry>
+                        <material>
+                            <ambient>0.3 0.3 0.3 1</ambient>
+                        </material>
+                    </visual>
+                </link>
+            </model>
+        
+            <!-- Fire alarm -->
+            <model name="fire_alarm">
+                <pose>-2 0 0.5 0 0 0</pose>
+                <static>true</static>
+                <link name="link">
+                    <visual name="base">
+                        <geometry>
+                            <box>
+                                <size>0.1 0.1 0.05</size>
+                            </box>
+                        </geometry>
+                        <material>
+                            <ambient>1 0 0 1</ambient>
+                            <emissive>1 0 0 0.3</emissive>
+                        </material>
+                    </visual>
+                </link>
+            </model>
+        </world>
+    </sdf>
