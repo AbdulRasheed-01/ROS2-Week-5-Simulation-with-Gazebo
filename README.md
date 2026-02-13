@@ -92,3 +92,13 @@ URDF: Robot description for ROS 2 (MoveIt, Navigation)
 SDF: Full simulation description (Gazebo)
 
 Xacro: Macro language for URDF (parametric robots)
+
+Key Components:
+
+Controller Manager: Loads/unloads controllers
+
+Joint Controllers: Position, velocity, effort control
+
+Hardware Interface: Abstract robot hardware
+
+Gazebo Plugin: Bridge between ROS 2 and Gazebo
