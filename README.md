@@ -1642,3 +1642,104 @@ Create worlds/office.sdf:
             </model>
         </world>
     </sdf>
+5.3 Test Custom Worlds:
+
+    #Test maze world
+    ign gazebo -r worlds/maze.sdf
+
+    #Spawn robot in maze
+    ros2 launch gazebo_simulation spawn_robot.launch.py world:=maze.sdf
+
+    #Test office world
+    ros2 launch gazebo_simulation spawn_robot.launch.py world:=office.sdf
+
+    #Drive robot through maze
+    ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "linear: {x: 0.3} angular: {z: 0.2}" -r 10
+
+ 🔍 Troubleshooting
+Issue 1: Gazebo Won't Start
+
+    #Check GPU drivers
+    glxinfo | grep "OpenGL renderer"
+
+    #Run in software rendering mode
+    LIBGL_ALWAYS_SOFTWARE=1 ign gazebo -r world.sdf
+
+    #Check for missing models
+    ign gazebo -v 4 world.sdf
+
+Issue 2: Robot Falls Through Floor
+ 
+    #check collision geometry
+    #Ensure z position is above ground
+    #Increase contact solver iterations
+    <physics>
+        <max_contacts>10</max_contacts>
+        <ode>
+            <solver>
+                <iters>50</iters>
+            </solver>
+        </ode>
+    </physics>
+
+Issue 3: Sensors Not Publishing
+
+    #Check sensor plugins are loaded
+    ign service -s /world/world_name/list --reqtype ignition.msgs.StringMsg --reptype ignition.msgs.StringMsg
+
+    #Verify topic names
+    ign topic -l
+
+    #Check ROS 2 bridge
+    ros2 run ros_ign_bridge parameter_bridge /topic@sensor_msgs/msg/Image@gz.msgs.Image
+
+Issue 4: Controllers Not Loading
+
+    #Check controller manager is running
+    ros2 control list_controllers
+
+    #Load controller manually
+    ros2 control load_controller diff_drive_controller --set-state active
+
+    #Verify controller configuration
+    ros2 param dump /controller_manager
+Issue 5: Performance Issues
+
+    #Reduce update rates
+    <update_rate>20</update_rate>
+
+    #Simplify collision geometry
+    #Use convex hulls instead of complex meshes
+
+    #Reduce physics steps
+    <max_step_size>0.002</max_step_size>
+    <real_time_update_rate>500</real_time_update_rate>
+
+  Useful Commands Reference
+  
+      #Gazebo    
+    ign gazebo -v 4 -r world.sdf
+    ign service -l
+    ign topic -l
+
+    #ros2_control
+    ros2 control list_controllers
+    ros2 control list_hardware_interfaces
+    ros2 control load_controller
+    ros2 control unload_controller
+
+    #URDF/Xacro
+    xacro robot.urdf.xacro > robot.urdf
+    check_urdf robot.urdf
+    urdf_to_graphiz robot.urdf
+
+🎉 Congratulations!
+You've completed Week 5! You now know how to:
+
+✅ Create realistic robot models with URDF/Xacro
+
+✅ Simulate robots in complex Gazebo worlds
+
+✅ Add and configure sensors (LiDAR, Camera, IMU)
+
+✅ Implement ros2_control for robot actuation
