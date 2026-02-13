@@ -107,21 +107,21 @@ Gazebo Plugin: Bridge between ROS 2 and Gazebo
 
 Supported Sensors in Gazebo:
 
-Sensor	                      Topic Type	                Use Case
+Sensor	        |              Topic Type	             |       Use Case
 
-Camera	                      sensor_msgs/Image	          Vision, object detection
+Camera	        |              sensor_msgs/Image	     |         Vision, object detection
 
-Depth Camera	                sensor_msgs/Image	          3D perception
+Depth Camera	  |              sensor_msgs/Image	     |        3D perception
 
-LaserScan	                    sensor_msgs/LaserScan	      2D LiDAR
+LaserScan	      |              sensor_msgs/LaserScan	 |      2D LiDAR
 
-PointCloud	                  sensor_msgs/PointCloud2	    3D LiDAR
+PointCloud	    |              sensor_msgs/PointCloud2 |	    3D LiDAR
 
-IMU	sensor_msgs/Imu	          Orientation,                acceleration
+IMU	sensor_msgs/Imu	 |         Orientation,            |    acceleration
 
-GPS	                          sensor_msgs/NavSatFix	      Global position
+GPS	            |              sensor_msgs/NavSatFix	 |    Global position
 
-Force/Torque	                geometry_msgs/Wrench	      Contact sensing
+Force/Torque	  |              geometry_msgs/Wrench	   |   Contact sensing
 
-Sonar	                        sensor_msgs/Range	          Underwater/ultrasonic
+Sonar	          |              sensor_msgs/Range	     |    Underwater/ultrasonic
 
